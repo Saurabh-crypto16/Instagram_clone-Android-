@@ -48,10 +48,10 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHoler> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHoler holder, int position) {
+    public void onBindViewHolder(@NonNull final ViewHoler holder, int position) {
         firebaseUser= FirebaseAuth.getInstance().getCurrentUser();
 
-        User user=mUsers.get(position);
+        final User user=mUsers.get(position);
         holder.btnFollow.setVisibility(View.VISIBLE);
         holder.username.setText(user.getUsername());
         holder.name.setText(user.getName());
@@ -64,12 +64,41 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHoler> {
         if(user.getId().equals(firebaseUser.getUid())){
             holder.btnFollow.setVisibility(View.GONE);
         }
+
+        //to send a follow req to user when followBtn is clicked
+        holder.btnFollow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(holder.btnFollow.getText().toString().equals("follow")){
+                    FirebaseDatabase.getInstance().getReference().child("Follow").child(firebaseUser.getUid())
+                            .child("following").child(user.getId()).setValue(true);
+                    //above code will create a database which will have a child "Follow" which
+                    //will hav another child as UserId whose branch will be "following"
+                    //inside which Uid will be stored with boolean true indicating user is being followed
+
+                    FirebaseDatabase.getInstance().getReference().child("follow").child(user.getId())
+                            .child("followers").child(firebaseUser.getUid()).setValue(true);
+                    //this will create a database which will store no of followers
+                }else{
+                    //if text on btnFollow is not follow then user is already being followed
+                    //hence if user clicks this btn he should be able to unfollow
+
+                    //here we just need to remove the values stored in the above if from Database
+                    FirebaseDatabase.getInstance().getReference().child("Follow").child(firebaseUser.getUid())
+                            .child("following").child(user.getId()).removeValue();
+
+                    FirebaseDatabase.getInstance().getReference().child("follow").child(user.getId())
+                            .child("followers").child(firebaseUser.getUid()).removeValue();
+                }
+            }
+        });
     }
 
     private void isFollow(final String id, final Button btnFollow) {
         DatabaseReference reference= FirebaseDatabase.getInstance().getReference().child("follow")
                 .child(firebaseUser.getUid()).child("following");
         reference.addValueEventListener(new ValueEventListener() {
+            //below code changes text of btnFollow from follow to following
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if(snapshot.child(id).exists()){
