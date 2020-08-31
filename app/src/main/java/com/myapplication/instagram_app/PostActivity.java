@@ -130,7 +130,7 @@ public class PostActivity extends AppCompatActivity {
                     map.put("publisher", FirebaseAuth.getInstance().getCurrentUser().getUid());//this gives uid of current user
 
                     //pushing values to data base
-                    ref.child("postId").setValue(map);
+                    ref.child(postId).setValue(map);
 
                     //creating another database to save hashtags
                     DatabaseReference mHashTagRef=FirebaseDatabase.getInstance().getReference().child("Hashtags");
