@@ -21,6 +21,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.hendraanggrian.appcompat.widget.SocialAutoCompleteTextView;
+import com.myapplication.Adapter.TagAdapter;
 import com.myapplication.Adapter.UserAdapter;
 import com.myapplication.Model.User;
 import com.myapplication.instagram_app.R;
@@ -36,6 +37,12 @@ public class SearchFragment extends Fragment {
     private List<com.myapplication.Model.User> mUsers;  //list to be sent to user Adapter
     private UserAdapter userAdapter;
 
+    //for tag search
+    private RecyclerView recyclerViewTags;
+    private List<String> mHashTags;
+    private List<String> mHashTagsCount;
+    private TagAdapter tagAdapter;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -47,6 +54,15 @@ public class SearchFragment extends Fragment {
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        recyclerViewTags=view.findViewById(R.id.recycler_view_tags);
+        recyclerViewTags.setHasFixedSize(true);
+        recyclerViewTags.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        mHashTags=new ArrayList<>();
+        mHashTagsCount=new ArrayList<>();
+        tagAdapter=new TagAdapter(getContext(),mHashTags,mHashTagsCount);
+        recyclerViewTags.setAdapter(tagAdapter);    //linking tagAdapter with recycler view
+
         mUsers=new ArrayList<>();
 
         userAdapter=new UserAdapter(getContext(),mUsers,true);
@@ -56,6 +72,9 @@ public class SearchFragment extends Fragment {
 
         //this method adds users to mUsers list
         readUsers();
+
+        //this method reads all available tags
+        readTags();
 
         //linking searchBar
         searchBar=view.findViewById(R.id.search_bar);
@@ -74,11 +93,36 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable editable) {
-
+                filter(editable.toString());    //this is used in search feature
             }
         });
 
         return view;
+    }
+
+    private void readTags() {
+        //we make all tags available and store it in mHashTags and thier count in mHashTagCount
+        FirebaseDatabase.getInstance().getReference().child("Hashtags")
+                .addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                mHashTags.clear();
+                mHashTagsCount.clear();
+
+                //for loop for all available tags
+                for(DataSnapshot dataSnapshot: snapshot.getChildren()){
+                    mHashTags.add(dataSnapshot.getKey());
+                    mHashTagsCount.add(dataSnapshot.getChildrenCount()+""); //converting to string by ""
+                    // since getChildrenCount() returns long value
+                }
+                tagAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     private void readUsers() {
@@ -129,6 +173,21 @@ public class SearchFragment extends Fragment {
 
             }
         });
+    }
 
+    //this method provides search functionality in tags
+    private void filter(String text){
+        List<String> mSearchTags=new ArrayList<>();
+        List<String> mSearchTagsCount=new ArrayList<>();
+
+        for(String s:mHashTags){
+            if(s.toLowerCase().contains(text.toLowerCase())){
+                //if the tag exists we display by adding it to mSearchTags
+                mSearchTags.add(s);
+                mSearchTagsCount.add(mHashTagsCount.get(mHashTags.indexOf(s)));
+            }
+        }
+
+        tagAdapter.filter(mSearchTags,mSearchTagsCount);    //this filter is in TagAdapter class
     }
 }

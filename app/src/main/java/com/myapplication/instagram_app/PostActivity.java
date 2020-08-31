@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.MimeTypeMap;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,11 +20,16 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.StorageTask;
+import com.hendraanggrian.appcompat.socialview.Hashtag;
+import com.hendraanggrian.appcompat.widget.HashtagArrayAdapter;
 import com.hendraanggrian.appcompat.widget.SocialAutoCompleteTextView;
 import com.theartofdev.edmodo.cropper.CropImage;
 
@@ -180,5 +186,35 @@ public class PostActivity extends AppCompatActivity {
             startActivity(new Intent(PostActivity.this,MainActivity.class));
             finish();
         }
+    }
+
+    //this method shows available hashtags when we search hashtags while adding any image in PostActivity
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        //ArrayAdapter is an Android SDK class for adapting an array of objects as a datasource
+        //Adapters are used by Android to treat a result set uniformly
+        // whether it's from a database, file, or in-memory objects so that it can be displayed in a UI element
+        final ArrayAdapter<Hashtag> hashtagAdapter=new HashtagArrayAdapter<>(getApplicationContext());
+
+        //getting all hashtags and thier count and storing in adapter
+        FirebaseDatabase.getInstance().getReference().child("Hashtags").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for(DataSnapshot dataSnapshot: snapshot.getChildren()){
+                    //adding each value to hashTagArrayAdapter
+                    //Hashtag class is in Socialview
+                    hashtagAdapter.add(new Hashtag(dataSnapshot.getKey(),(int)dataSnapshot.getChildrenCount()));
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+        //attaching to SocialAutoCompleteTextView
+        description.setHashtagAdapter(hashtagAdapter);
     }
 }
